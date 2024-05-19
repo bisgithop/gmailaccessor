@@ -1,0 +1,62 @@
+import os.path
+
+# Prerequisites - needs a running gmail account
+# DOWNLOAD credentials.json from your gmail account. 
+# token.json is auto generated
+
+import email
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from django.http import HttpResponse
+
+# If modifying these scopes, delete the file token.json.
+SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+
+def main():
+  credentials = None
+
+creds = Credentials.from_autorized_user_file("token.json",SCORES)
+
+if not creds or not creds.valid:
+  if creds and creds.expired and creds.refresh_token:
+    creds.refresh(Request())
+  else:
+    flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+    creds = flow.run_local_server(ports=0)
+  with open("token.json", "w") as token:
+    token.write(creds.to_json())
+
+try:
+    # Call Gmail API
+    service = build("gmail", "v1", credentials=creds)
+    #results = service.users().labels().list(userId="me").execute()    
+    q_str = 'Myntra'
+    resultado = service.users().messages().list(userId= 'me',q=q_str,labelIds= ['INBOX']).execute()
+    messages = resultado.get('messages', [])
+    print ("messages:")
+    for mensaje in messages[:1]:
+        message = service.users().messages().get(userId='me', id=messages['id']).execute()
+        payload = leer.get("payload")
+        header = payload.get("headers")
+        for x in header:
+            if x['name'] == 'subject':
+                sub = x['value'] #subject
+                print(sub)
+        print(message['snippet'])  #body
+
+    #https://gmail.googleapis.com/gmail/v1/users/{userId}/messages/{id}    
+    #labels = results.get("labels", [])
+    #labels = results.get("messages", [])
+    #if not labels:
+    #  print("No labels found.")
+    #  return
+    #print("Labels:")
+    #for label in labels:
+    #  print(label["name"])
+
+  except HttpError as error:
+    # errors from gmail API.
+    print(f"error : {error}")
